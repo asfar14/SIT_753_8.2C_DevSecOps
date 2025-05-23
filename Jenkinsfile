@@ -1,46 +1,59 @@
 pipeline {
-  agent any
+    agent any
 
-  stages {
-    stage('Checkout') {
-      steps {
-        git branch: 'main', url: 'https://github.com/asfar14/SIT_753_8.2C_DevSecOps.git'
-      }
+    tools {
+        nodejs "NodeJS"
     }
 
-    stage('Install Dependencies') {
-      steps {
-        bat 'npm install'
-      }
+    environment {
+        RECIPIENT = 'asfarsalih.sg@gmail.com'
     }
 
-    stage('Run Tests') {
-      steps {
-        bat 'npm test || exit /b 0'
-      }
+    stages {
+        stage('Checkout') {
+            steps {
+                git url: 'https://github.com/asfar14/SIT_753_8.2C_DevSecOps.git', branch: 'main'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                bat 'npm install'
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                bat 'npm test'
+            }
+        }
+
+        stage('Generate Coverage') {
+            steps {
+                bat 'npm run coverage'
+            }
+        }
+
+        stage('Security Scan - NPM Audit') {
+            steps {
+                bat 'npm audit --json > audit-report.json'
+            }
+        }
+
+        stage('Send Notification') {
+            steps {
+                mail to: "${RECIPIENT}",
+                     subject: "Jenkins Build: ${currentBuild.fullDisplayName}",
+                     body: "Build Result: ${currentBuild.currentResult}\n\nCheck console for more details.\n\nURL: ${env.BUILD_URL}"
+            }
+        }
     }
 
-    stage('Generate Coverage') {
-      steps {
-        bat 'npm run coverage || exit /b 0'
-      }
+    post {
+        failure {
+            mail to: "${RECIPIENT}",
+                 subject: "Jenkins Build Failed: ${currentBuild.fullDisplayName}",
+                 body: "Something went wrong. Build failed.\n\nURL: ${env.BUILD_URL}"
+        }
     }
-
-    stage('Security Scan - NPM Audit') {
-      steps {
-        bat 'npm audit || exit /b 0'
-      }
-    }
-
-    stage('Send Notification') {
-      steps {
-        emailext (
-          subject: "Jenkins Build: ${currentBuild.currentResult}",
-          body: "The build has finished with status: ${currentBuild.currentResult}. Check the Jenkins log for full details.",
-          to: "asfarsalih.sg@gmail.com",
-          attachLog: true
-        )
-      }
-    }
-  }
 }
