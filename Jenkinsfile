@@ -1,8 +1,12 @@
 pipeline {
     agent any
 
+    environment {
+        SONAR_TOKEN = credentials('sonar-token') // Jenkins secret token
+    }
+
     tools {
-        nodejs "NodeJS"
+        nodejs 'NodeJS'
     }
 
     stages {
@@ -20,38 +24,29 @@ pipeline {
 
         stage('Run Tests') {
             steps {
-                echo 'Skipping npm test due to snyk CLI error'
-                bat 'echo "Test stage completed (snyk skipped)"'
+                bat 'npm test'
             }
         }
 
-        stage('Generate Coverage') {
+        stage('SonarCloud Analysis') {
             steps {
-                bat 'echo "Coverage placeholder step completed"'
-            }
-        }
-
-        stage('Security Scan - Skipped') {
-            steps {
-                echo 'Security scan (Snyk) skipped due to missing CLI'
-            }
-        }
-
-        stage('Send Notification') {
-            steps {
-                mail to: 'your-email@domain.com',
-                     subject: "Jenkins Build Completed",
-                     body: "Pipeline completed successfully. View details at ${env.BUILD_URL}"
+                bat """
+                sonar-scanner ^
+                -Dsonar.projectKey=asfar14_SIT_753_8.2C_DevSecOps ^
+                -Dsonar.organization=asfar14 ^
+                -Dsonar.sources=. ^
+                -Dsonar.host.url=https://sonarcloud.io ^
+                -Dsonar.login=%SONAR_TOKEN%
+                """
             }
         }
     }
 
     post {
-        failure {
-            mail to: 'your-email@domain.com',
-                 subject: "Jenkins Build Failed",
-                 body: "Pipeline failed. Check logs at ${env.BUILD_URL}"
+        always {
+            echo 'Build completed!'
         }
     }
 }
+
 
