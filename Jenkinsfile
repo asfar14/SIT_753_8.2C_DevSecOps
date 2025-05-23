@@ -1,52 +1,31 @@
 pipeline {
     agent any
-
-    environment {
-        SONAR_TOKEN = credentials('sonar-token') // Jenkins secret token
-    }
-
     tools {
         nodejs 'NodeJS'
     }
-
+    environment {
+        SONAR_TOKEN = credentials('sonar-token')
+    }
     stages {
         stage('Checkout') {
             steps {
                 git 'https://github.com/asfar14/SIT_753_8.2C_DevSecOps.git'
             }
         }
-
         stage('Install Dependencies') {
             steps {
-                bat 'npm install'
+                sh 'npm install'
             }
         }
-
-        stage('Run Tests') {
+        stage('SonarCloud Scan') {
             steps {
-                bat 'npm test'
+                withSonarQubeEnv('SonarCloud') {
+                    sh 'npx sonar-scanner'
+                }
             }
-        }
-
-        stage('SonarCloud Analysis') {
-            steps {
-                bat """
-                sonar-scanner ^
-                -Dsonar.projectKey=asfar14_SIT_753_8.2C_DevSecOps ^
-                -Dsonar.organization=asfar14 ^
-                -Dsonar.sources=. ^
-                -Dsonar.host.url=https://sonarcloud.io ^
-                -Dsonar.login=%SONAR_TOKEN%
-                """
-            }
-        }
-    }
-
-    post {
-        always {
-            echo 'Build completed!'
         }
     }
 }
+
 
 
